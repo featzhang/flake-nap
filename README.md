@@ -18,3 +18,7 @@ wait -- weak --> weak
 weak -- finish --> wait
 wait -- start work --> work 
 ```
+
+## TODO
+
+- [ ] Detect continuing work times
