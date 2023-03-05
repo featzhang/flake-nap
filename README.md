@@ -11,8 +11,8 @@ rest[Resting]
 wait[Waiting just]
 
 init -- start --> work
-work -- interrupt for other work --> work
-work -- interrupt for rest --> rest
+work -- interrupt to other work --> work
+work -- interrupt to rest --> rest
 work -- finish --> wait
 wait -- rest --> rest
 rest -- finish --> wait

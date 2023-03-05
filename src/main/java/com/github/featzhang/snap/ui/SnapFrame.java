@@ -1,6 +1,7 @@
 package com.github.featzhang.snap.ui;
 
-import javax.swing.*;
+import com.github.featzhang.snap.enums.NapState;
+
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -10,17 +11,26 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import static com.github.featzhang.snap.utils.FlakeLabel.APP_NAME;
-import static com.github.featzhang.snap.utils.FlakeLabel.START;
+import static com.github.featzhang.snap.utils.FlakeLabel.INIT_STATE;
+import static com.github.featzhang.snap.utils.FlakeLabel.RESTING;
+import static com.github.featzhang.snap.utils.FlakeLabel.START_REST;
+import static com.github.featzhang.snap.utils.FlakeLabel.START_WORK;
 import static com.github.featzhang.snap.utils.FlakeLabel.STOP;
 import static com.github.featzhang.snap.utils.FlakeLabel.THINGS_DEFAULT;
 import static com.github.featzhang.snap.utils.FlakeLabel.TIMER_DEFAULT;
+import static com.github.featzhang.snap.utils.FlakeLabel.WAITING;
+import static com.github.featzhang.snap.utils.FlakeLabel.WORKING;
 
+import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.LineBorder;
 
 /**
- * @author averyzhang
+ * <br/>
+ * all time in milliseconds.
+ *
+ * @author featzhang
  */
 public class SnapFrame extends JFrame {
 
@@ -30,14 +40,14 @@ public class SnapFrame extends JFrame {
 
     private JButton startButton;
     private JButton stopButton;
-    private JButton weakButton;
+    private JButton restButton;
     private JButton interruptButton;
 
     private long startTime;
     private long endTime;
     private long leastTime;
     private Timer timer;
-    private boolean status = false;
+    private NapState status = NapState.Initial;
     private JProgressBar progressBar;
     private JTable logTable;
 
@@ -59,25 +69,25 @@ public class SnapFrame extends JFrame {
 
             @Override
             public void run() {
-                if (status) {
+                if (status == NapState.RESTING || status == NapState.WORKING) {
                     leastTime += 1000;
                     long time = endTime - leastTime;
                     if (time < 0) {
-                        status = false;
-                        stopButton.setEnabled(false);
-                        startButton.setEnabled(true);
+                        onEndOfTime();
                     } else {
                         timerLabel.setText(formatDuration(time));
                         int process = (int) ((double) (leastTime - startTime) * 100 / getWorkTimeInterval());
-                        System.out.println(process);
                         progressBar.setValue(process);
                     }
                 }
             }
         }, 1000, 1000);
-//		
-        stopButton.setEnabled(false);
-        startButton.setEnabled(true);
+//
+        toState(NapState.Initial);
+    }
+
+    private void onEndOfTime() {
+
     }
 
     private void loadAction() {
@@ -91,13 +101,13 @@ public class SnapFrame extends JFrame {
         startButton.addActionListener(e -> onStartButtonAction());
         stopButton.addActionListener(e -> onStopButtonAction());
         interruptButton.addActionListener(e -> onInterruptButtonAction());
-        weakButton.addActionListener(e -> onWeakButtonAction());
+        restButton.addActionListener(e -> onWeakButtonAction());
 
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
                 super.windowClosing(e);
-                status = false;
+                status = NapState.Initial;
                 timer.cancel();
             }
         });
@@ -116,20 +126,25 @@ public class SnapFrame extends JFrame {
         stopButton.setEnabled(false);
         startButton.setEnabled(true);
 //
-        status = false;
         endTime = System.currentTimeMillis();
 
     }
 
     protected void onStartButtonAction() {
-//		
-        stopButton.setEnabled(true);
-        startButton.setEnabled(false);
-//		
+//
+        if (status == NapState.Initial) {
+            toState(NapState.WORKING);
+        } else if (status == NapState.WORKING) {
+            saveNewLog();
+            toState(NapState.WORKING);
+        }
+//
         startTime = System.currentTimeMillis();
         endTime = startTime + getWorkTimeInterval();
         leastTime = startTime;
-        status = true;
+    }
+
+    private void saveNewLog() {
 
     }
 
@@ -139,11 +154,11 @@ public class SnapFrame extends JFrame {
 
     private void initComponents() {
 //
-        startButton = new JButton(START.value());
+        startButton = new JButton(START_WORK.value());
 
         stopButton = new JButton(STOP.value());
         interruptButton = new JButton("interrupt");
-        weakButton = new JButton("weak");
+        restButton = new JButton("weak");
         progressBar = new JProgressBar();
         progressBar.setBackground(new Color(136, 129, 45));
         progressBar.setValue(50);
@@ -154,7 +169,7 @@ public class SnapFrame extends JFrame {
         buttonPanel.add(startButton);
 
         buttonPanel.add(interruptButton);
-        buttonPanel.add(weakButton);
+        buttonPanel.add(restButton);
         buttonPanel.add(stopButton);
 //
         Container parent = getContentPane();
@@ -231,6 +246,48 @@ public class SnapFrame extends JFrame {
         long sec = du % 60;
         long min = du / 60 % 60;
         return String.format("%02d:%02d", min, sec);
+    }
+
+    private void toState(NapState state) {
+        this.status = state;
+        switch (state) {
+            case Initial:
+//
+                startButton.setText(START_WORK.value());
+                startButton.setEnabled(true);
+                interruptButton.setEnabled(false);
+                restButton.setEnabled(true);
+                stopButton.setEnabled(false);
+//
+                thingLabel.setText(INIT_STATE.value());
+                break;
+            case WORKING:
+                startButton.setText(START_REST.value());
+                startButton.setEnabled(false);
+                interruptButton.setEnabled(true);
+                restButton.setEnabled(true);
+                stopButton.setEnabled(true);
+//
+                thingLabel.setText(WORKING.value());
+                break;
+            case WAIT:
+                startButton.setEnabled(false);
+                interruptButton.setEnabled(false);
+                restButton.setEnabled(false);
+                stopButton.setEnabled(false);
+//
+                thingLabel.setText(WAITING.value());
+                break;
+            case RESTING:
+                startButton.setText(START_WORK.value());
+                startButton.setEnabled(true);
+                interruptButton.setEnabled(true);
+                restButton.setEnabled(false);
+                stopButton.setEnabled(false);
+//
+                thingLabel.setText(RESTING.value());
+                break;
+        }
     }
 
 }

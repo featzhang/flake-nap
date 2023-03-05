@@ -2,7 +2,7 @@ package com.github.featzhang.snap.enums;
 
 public enum NapState {
     WORKING,
-    WEAKING,
+    RESTING,
     Initial,
     WAIT;
 }
