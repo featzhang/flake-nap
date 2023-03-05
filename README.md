@@ -7,15 +7,15 @@ graph LR
 
 init[Initial]
 work[Working]
-weak[Weaking]
+rest[Resting]
 wait[Waiting just]
 
 init -- start --> work
 work -- interrupt for other work --> work
-work -- interrupt for weak --> weak
+work -- interrupt for rest --> rest
 work -- finish --> wait
-wait -- weak --> weak
-weak -- finish --> wait
+wait -- rest --> rest
+rest -- finish --> wait
 wait -- start work --> work 
 ```
 
