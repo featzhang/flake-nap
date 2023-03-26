@@ -1,5 +1,7 @@
 package com.github.featzhang.snap.ui;
 
+import com.github.featzhang.snap.utils.TimeUtil;
+
 import javax.swing.table.AbstractTableModel;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,9 +45,9 @@ public class NapTableModel extends AbstractTableModel {
             case 0:
                 return row.getTitle();
             case 1:
-                return row.getStartTime();
+                return TimeUtil.formatTime(row.getStartTime());
             case 2:
-                return row.getEndTime();
+                return TimeUtil.formatTime(row.getEndTime());
             default:
                 return "";
         }

@@ -1,6 +1,7 @@
 package com.github.featzhang.snap.ui;
 
 import com.github.featzhang.snap.enums.NapState;
+import lombok.extern.slf4j.Slf4j;
 
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -31,6 +32,7 @@ import javax.swing.border.LineBorder;
  *
  * @author featzhang
  */
+@Slf4j
 public class SnapFrame extends JFrame {
 
     private static final long serialVersionUID = 1L;
@@ -48,6 +50,9 @@ public class SnapFrame extends JFrame {
     private Timer timer;
     private NapState status = NapState.Initial;
     private JProgressBar progressBar;
+
+    private final NapTableModel tableModel = new NapTableModel();
+
     private JTable logTable;
 
     public SnapFrame() throws HeadlessException {
@@ -58,7 +63,8 @@ public class SnapFrame extends JFrame {
     }
 
     private long getWorkTimeInterval() {
-        return 25 * 60 * 1000;
+//        return 25 * 60 * 1000;
+        return 2 * 60 * 1000;
     }
 
     private void initState() {
@@ -72,7 +78,7 @@ public class SnapFrame extends JFrame {
                     leastTime += 1000;
                     long time = endTime - leastTime;
                     if (time < 0) {
-                        onEndOfTime();
+                        onTimeout();
                     } else {
                         timerLabel.setText(formatDuration(time));
                         int process = (int) ((double) (leastTime - startTime) * 100 / getWorkTimeInterval());
@@ -85,8 +91,38 @@ public class SnapFrame extends JFrame {
         toState(NapState.Initial);
     }
 
-    private void onEndOfTime() {
+    private void onTimeout() {
+        log.debug("onTimeout");
+        if (status == NapState.WORKING) {
+            saveNewLog("Working");
+            int dialogResult = JOptionPane.showConfirmDialog(
+                    SnapFrame.this,
+                    "工作20分钟，休息下吧!",
+                    "休息时间到",
+                    JOptionPane.YES_OPTION,
+                    JOptionPane.WARNING_MESSAGE);
+            if (JOptionPane.YES_OPTION == dialogResult) {
+                startRest();
+            } else {
 
+            }
+        }
+
+
+        JOptionPane.showMessageDialog(null, "Timeout");
+    }
+
+    private void startRest() {
+        startTime = System.currentTimeMillis();
+        endTime = startTime + getRestTimeInterval();
+        leastTime = startTime;
+
+        saveNewLog("Resting");
+        toState(NapState.RESTING);
+    }
+
+    private long getRestTimeInterval() {
+        return 60 * 1000;
     }
 
     private void loadAction() {
@@ -133,8 +169,8 @@ public class SnapFrame extends JFrame {
 //
         if (status == NapState.Initial) {
             toState(NapState.WORKING);
-        } else if (status == NapState.WORKING) {
-            saveNewLog();
+        } else if (status == NapState.WAIT) {
+            saveNewLog("Working");
             toState(NapState.WORKING);
         }
 //
@@ -143,8 +179,17 @@ public class SnapFrame extends JFrame {
         leastTime = startTime;
     }
 
-    private void saveNewLog() {
-
+    private void saveNewLog(String title) {
+        NapEntity nap = NapEntity
+                .builder()
+                .title(title)
+                .startTime(startTime)
+                .endTime(endTime)
+                .build();
+        log.debug("save new log");
+        tableModel.addData(nap);
+        logTable.repaint();
+        logTable.invalidate();
     }
 
     protected void onThingLabelClicked() {
@@ -170,13 +215,9 @@ public class SnapFrame extends JFrame {
         buttonPanel.add(interruptButton);
         buttonPanel.add(restButton);
         buttonPanel.add(stopButton);
-//
-        Container parent = getContentPane();
-//        panel.add(timerLabel, BorderLayout.CENTER);
 
         JPanel panel_1 = new JPanel();
         panel_1.setBorder(new LineBorder(new Color(0, 0, 0)));
-//        panel.add(panel_1, BorderLayout.WEST);
         GridBagLayout gbl_panel_1 = new GridBagLayout();
         gbl_panel_1.columnWidths = new int[]{0};
         gbl_panel_1.rowHeights = new int[]{96, 0, 0, 0, 0};
@@ -184,7 +225,6 @@ public class SnapFrame extends JFrame {
         gbl_panel_1.rowWeights = new double[]{0.0, 0.0, 0.0, Double.MIN_VALUE, 1.0};
 
         panel_1.setLayout(gbl_panel_1);
-        // parent.add(panel);
         timerLabel = new JLabel(TIMER_DEFAULT.value());
         timerLabel.setForeground(new Color(255, 25, 20));
         timerLabel.setFont(new Font("Lucida Grande", Font.PLAIN, 48));
@@ -235,7 +275,7 @@ public class SnapFrame extends JFrame {
         panel_1.add(panel, gbc_panel);
         panel.setLayout(new BorderLayout(0, 0));
 
-        logTable = new JTable();
+        logTable = new JTable(tableModel);
 
         panel.add(logTable, BorderLayout.CENTER);
     }
