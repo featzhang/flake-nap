@@ -27,7 +27,6 @@ import javax.swing.border.EtchedBorder;
 import javax.swing.border.LineBorder;
 
 /**
- * <br/>
  * all time in milliseconds.
  *
  * @author featzhang
